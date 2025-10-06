@@ -8,8 +8,20 @@
  * License: GPL2
  *
  * Copyright (c) 2025 AppsOrWebs Limited
+ */
 
-     <script>
+// Prevent direct access
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+/**
+ * Main shortcode output function for the certificate generator UI
+ */
+function appsorwebs_certificate_generator_output() {
+    ob_start();
+    ?>
+    <script>
     (function(){
         // Admin REST config for this page
         var AOW_REST = window.AOW_REST || {};
@@ -17,9 +29,7 @@
         AOW_REST.nonce = AOW_REST.nonce || '<?php echo wp_create_nonce( "wp_rest" ); ?>';
         function el(id){return document.getElementById(id)}
         // Simple HTML-escaping helper for modal messages
-        function escHtml(s){ if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-        // If the frontend modal library hasn't loaded yet (enqueued asset), provide safe fallbacks
+        function escHtml(s){ if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }        // If the frontend modal library hasn't loaded yet (enqueued asset), provide safe fallbacks
         if (typeof window.aow_showModal === 'undefined') {
             window.aow_showModal = function(title, htmlBody){ try { alert((title||'') + "\n\n" + (htmlBody||'').replace(/<[^>]+>/g,'')); } catch(e) { console.log(title, htmlBody); } };
             window.aow_confirm = function(message, cbYes, cbNo){ if (confirm(message)) { if (typeof cbYes === 'function') cbYes(); } else { if (typeof cbNo === 'function') cbNo(); } };
@@ -136,292 +146,6 @@
     <?php
     // Enqueue the main frontend application script (extracted from inline markup)
     // The script is registered/enqueued by aow_enqueue_frontend_assets() which runs on wp_enqueue_scripts.
-    // Stop output buffering and return the content
-    return ob_get_clean();
-
-    /** Renders the list of generated certificates with their view/delete options */
-    function renderCertificateList() {
-        const listContainer = document.getElementById('certificate-list');
-        if (!listContainer) return;
-
-        if (Object.keys(state.certificates).length === 0) {
-            listContainer.innerHTML = '<p class="text-gray-500 italic">No certificates generated yet. Start by filling the form above.</p>';
-            return;
-        }
-
-        listContainer.innerHTML = Object.values(state.certificates).map(cert => `
-            <div class="flex flex-col sm:flex-row justify-between items-center p-4 bg-aow-input-bg rounded-lg border border-aow-card-bg/50 hover:border-aow-secondary transition duration-300 cursor-default shadow-lg">
-                <div>
-                    <p class="font-semibold text-xl text-gray-100">${cert.studentName}</p>
-                    <p class="text-sm text-gray-400">${cert.courseTitle} | ID: <span class="text-aow-secondary font-mono text-sm">${cert.certificateId}</span></p>
-                </div>
-                <div class="mt-3 sm:mt-0 flex space-x-2">
-                    <button onclick="showCertificate('${cert.certificateId}')" class="px-3 py-1 text-sm bg-aow-secondary text-aow-dark-bg font-semibold rounded-full hover:bg-aow-primary hover:text-white transition shadow-md">View Certificate</button>
-                    <button onclick="deleteCertificate('${cert.certificateId}')" class="px-3 py-1 text-sm bg-red-700 text-red-100 rounded-full hover:bg-red-600 transition">Delete</button>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    /** Renders the public-facing verification page */
-    function renderVerificationView(id = null) {
-        updateNav('verifier');
-        contentArea.innerHTML = `
-            <div class="p-8 md:p-12 rounded-3xl shadow-strong illuminated-card max-w-lg mx-auto">
-                <h2 class="text-3xl font-bold text-center text-aow-primary mb-4">Certificate Verification Portal</h2>
-                <p class="text-center text-gray-400 mb-8">Enter the unique Certificate ID or scan the QR code to verify validity.</p>
-                
-                <form id="verification-form" class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="verify-id" value="${id || ''}" required class="flex-grow px-4 py-3 border rounded-lg focus:ring-2 focus:ring-aow-primary" placeholder="Enter Certificate ID (e.g., AOWL-XXXXXX-XXXX)">
-                    <button type="submit" class="shrink-0 px-6 py-3 bg-aow-primary text-aow-dark-bg font-bold rounded-lg hover:bg-aow-secondary transition duration-300 shadow-md hover:shadow-aow-glow">
-                        Verify Certificate
-                    </button>
-                </form>
-                
-                <div id="verification-result" class="mt-8 pt-6 border-t border-aow-primary/50 min-h-24">
-                    <p class="text-center text-gray-500">Enter a Certificate ID and click 'Verify' to check status.</p>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('verification-form').addEventListener('submit', verifyCertificate);
-        if (id) {
-            verifyCertificate({ preventDefault: () => {} });
-        }
-    }
-
-    /** Renders the full, professional certificate for preview/download */
-    function showCertificate(id) {
-        const cert = state.certificates[id];
-        if (!cert) return showMessage('Certificate not found!', 'error');
-
-        const certContainer = document.createElement('div');
-        certContainer.id = 'certificate-modal';
-        certContainer.className = 'fixed inset-0 bg-aow-dark-bg bg-opacity-95 flex items-center justify-center p-4 z-50';
-        
-        // *** CERTIFICATE VISUAL TEMPLATE START ***
-        certContainer.innerHTML = `
-            <div class="relative bg-aow-cert-bg text-gray-200 p-8 rounded-xl max-w-4xl w-full h-auto overflow-y-auto certificate-container">
-                <button onclick="document.getElementById('certificate-modal').remove()" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-aow-secondary transition rounded-full hover:bg-aow-card-bg/50">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-
-                <div class="p-8 md:p-16 text-center">
-                    <img src="${cert.logoUrl}" alt="AppsOrWebs Logo" class="mx-auto mb-8 h-12">
-                    
-                    <h3 class="text-xl font-medium text-gray-400 uppercase mb-2">Certificate of Completion</h3>
-                    <h2 class="text-5xl font-extrabold text-aow-primary mb-6">AppsOrWebs Limited</h2>
-
-                    <p class="text-2xl font-light italic mb-8">This certifies that</p>
-                    
-                    <p class="text-6xl font-serif font-bold text-gray-50 border-b-4 border-aow-secondary inline-block px-10 pb-2 mb-12">${cert.studentName}</p>
-                    
-                    <p class="text-2xl font-light italic mb-2">has successfully completed the demanding curriculum for the course:</p>
-                    <p class="text-4xl font-bold text-gray-50 mb-10">${cert.courseTitle}</p>
-                    
-                    <div class="flex flex-col md:flex-row justify-center items-center mt-12 space-y-8 md:space-y-0 md:space-x-16">
-                        
-                        <!-- Signature Block -->
-                        <div class="flex-1 text-center max-w-xs">
-                            <img src="${cert.signatureUrl}" alt="Signature" class="h-10 mx-auto mb-2 filter-none" style="opacity: 0.8;">
-                            <div class="border-t border-gray-600 pt-1">
-                                <p class="text-lg font-semibold text-gray-100">${cert.instructorName}</p>
-                                <p class="text-sm text-gray-400">Authorized Instructor (optional)</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Date Block -->
-                        <div class="text-center max-w-xs">
-                            <p class="text-2xl font-bold text-gray-50">${cert.completionDate}</p>
-                            <div class="border-t border-gray-600 pt-1">
-                                <p class="text-sm text-gray-400">Date of Completion</p>
-                            </div>
-                        </div>
-
-                        <!-- QR Code / Verification Block -->
-                        <div class="flex-1 text-center max-w-xs">
-                            <div id="qrcode-${id}" class="mx-auto mb-2 p-2 border-2 border-aow-primary inline-block"></div>
-                            <p class="text-xs font-mono break-words text-gray-200">${cert.certificateId}</p>
-                            <p class="text-sm text-gray-400 mt-1">Scan or use ID for verification</p>
-                        </div>
-                    </div>
-
-                </div>
-                <p class="text-center text-xs text-gray-500 mt-8">VERIFIED LINK: ${state.baseVerificationUrl + id}</p>
-
-            </div>
-        `;
-        // *** CERTIFICATE VISUAL TEMPLATE END ***
-
-        document.body.appendChild(certContainer);
-
-        // Generate the QR code for the verification link (Inverted colors for dark background)
-        new QRCode(document.getElementById(`qrcode-${id}`), {
-            text: state.baseVerificationUrl + id,
-            width: 80,
-            height: 80,
-            colorDark : "#FFFFFF", // White foreground
-            colorLight : "#2F3C50", // Dark background (matches certificate background)
-            correctLevel : QRCode.CorrectLevel.H
-        });
-    }
-
-
-    // --- Event Handlers / Logic ---
-
-    function handleLogin(e) {
-        e.preventDefault();
-        // For production, only allow login if the current user has the required capability
-        if (AOW_REST.isAdmin) {
-            state.isAdminLoggedIn = true;
-            showMessage('Login Successful! Welcome, AppsOrWebs Admin.', 'success');
-            renderAdminView();
-            return;
-        }
-        showMessage('Insufficient permissions to access generator. Please sign in as an administrator in WordPress.', 'error');
-    }
-
-    function generateCertificate(e) {
-        e.preventDefault();
-
-        const studentName = document.getElementById('student-name').value;
-        const courseTitle = document.getElementById('course-title').value;
-        const completionDate = document.getElementById('completion-date').value;
-        const instructorName = document.getElementById('instructor-name').value;
-        const logoUrl = document.getElementById('logo-url').value;
-        const signatureUrl = document.getElementById('signature-url').value;
-        
-        const newId = generateUniqueId();
-
-        const newCertificate = {
-            certificateId: newId,
-            studentName,
-            courseTitle,
-            completionDate,
-            instructorName,
-            logoUrl,
-            signatureUrl,
-            verificationUrl: state.baseVerificationUrl + newId,
-        };
-
-        // If running as admin in WordPress, persist server-side via REST
-        if (AOW_REST.isAdmin && AOW_REST.root) {
-            fetch(AOW_REST.root + 'create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': AOW_REST.nonce },
-                body: JSON.stringify(Object.assign({}, newCertificate, { certificateId: newId }))
-            }).then(function(r){ return r.json(); }).then(function(data){
-                if (data && data.id) {
-                    // Success: reflect in UI
-                    state.certificates[newId] = newCertificate;
-                    showMessage('Certificate generated and saved.', 'success');
-                    renderAdminView();
-                    showCertificate(newId);
-                } else {
-                    var err = data && data.data && data.data.message ? data.data.message : JSON.stringify(data);
-                    aow_showModal('Create Failed', '<div>Failed to create certificate: '+escHtml(err)+'</div>');
-                }
-            }).catch(function(err){
-                aow_showModal('Network Error', '<div>Request failed: '+escHtml(err.message)+'</div>');
-            });
-            return;
-        }
-
-        // Fallback for preview-only mode (non-admin): save in-memory
-        state.certificates[newId] = newCertificate;
-        showMessage(`Certificate for ${studentName} generated successfully! ID: ${newId}`, 'success');
-        renderAdminView();
-        showCertificate(newId);
-    }
-
-    function deleteCertificate(id) {
-        if (AOW_REST.isAdmin && AOW_REST.root) {
-            // call REST delete endpoint
-            fetch(AOW_REST.root + 'delete/' + encodeURIComponent(id), {
-                method: 'DELETE',
-                headers: { 'Content-Type':'application/json', 'X-WP-Nonce': AOW_REST.nonce }
-            }).then(function(r){ return r.json(); }).then(function(res){
-                if (res && res.success) {
-                    showMessage('Certificate deleted.', 'info');
-                    delete state.certificates[id];
-                    renderAdminView();
-                } else {
-                    aow_showModal('Delete Failed', '<div>Delete failed: '+escHtml(JSON.stringify(res))+'</div>');
-                }
-            }).catch(function(e){ aow_showModal('Network Error', '<div>Request failed: '+escHtml(e.message)+'</div>'); });
-            return;
-        }
-
-        // Preview-only delete
-        showMessage('Certificate ' + id + ' deleted (preview).', 'info');
-        delete state.certificates[id];
-        renderAdminView();
-    }
-
-    function verifyCertificate(e) {
-        e.preventDefault();
-        const resultArea = document.getElementById('verification-result');
-        const inputId = document.getElementById('verify-id').value.trim().toUpperCase();
-        
-        const certificate = state.certificates[inputId];
-
-        if (certificate) {
-            resultArea.innerHTML = `
-                <div class="p-6 rounded-xl border-4 border-aow-primary bg-aow-card-bg shadow-inner-glow">
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 text-aow-primary mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <h3 class="text-2xl font-bold text-aow-primary">CERTIFICATE VERIFIED & VALID</h3>
-                    </div>
-                    <p class="mb-2"><span class="font-bold text-aow-secondary">Student Name:</span> ${certificate.studentName}</p>
-                    <p class="mb-2"><span class="font-bold text-aow-secondary">Course Completed:</span> ${certificate.courseTitle}</p>
-                    <p class="mb-2"><span class="font-bold text-aow-secondary">Completion Date:</span> ${certificate.completionDate}</p>
-                    <p class="mb-0"><span class="font-bold text-aow-secondary">Certificate ID:</span> <span class="font-mono">${certificate.certificateId}</span></p>
-                </div>
-            `;
-        } else {
-            resultArea.innerHTML = `
-                <div class="p-6 rounded-xl border-4 border-red-500 bg-aow-card-bg shadow-md">
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <h3 class="text-2xl font-bold text-red-400">VERIFICATION FAILED</h3>
-                    </div>
-                    <p>The Certificate ID '<span class="font-mono font-bold">${inputId || 'EMPTY'}</span>' was not found in our records. Please ensure the ID is correct or contact AppsOrWebs Limited support.</p>
-                </div>
-            `;
-        }
-    }
-
-    // --- Initialization and Routing ---
-
-    function initializeApp() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const view = urlParams.get('view');
-        const id = urlParams.get('id');
-
-        navGenerator.addEventListener('click', () => {
-            if (state.isAdminLoggedIn) {
-                renderAdminView();
-            } else {
-                renderLoginView();
-            }
-        });
-        navVerifier.addEventListener('click', () => renderVerificationView());
-
-        if (view === 'verifier') {
-            state.currentView = 'verifier';
-            renderVerificationView(id);
-        } else {
-            state.currentView = 'generator';
-            renderLoginView();
-        }
-    }
-
-    // Start the application after the document body is fully loaded
-    window.onload = initializeApp;
-
-</script>
-
-    <?php
     // Stop output buffering and return the content
     return ob_get_clean();
 }
