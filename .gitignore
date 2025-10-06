@@ -1,0 +1,9 @@
+node_modules/
+assets/js/
+assets/dist/*.map
+.DS_Store
+.env
+.idea/
+.vscode/
+aow-cert-generator-release.zip
+package-lock.json
