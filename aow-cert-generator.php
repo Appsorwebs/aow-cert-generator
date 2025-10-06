@@ -455,14 +455,19 @@ add_action('init', 'aow_register_certificate_cpt');
 /**
  * Activation check: ensure built assets exist for production usage.
  */
-function aow_plugin_activate_check() {
-    $dist_dir = plugin_dir_path(__FILE__) . 'assets/dist/';
-    if ( ! is_dir( $dist_dir ) || ! file_exists( $dist_dir . 'aow-frontend-app.js' ) ) {
-        // Prevent activation by dying with a message shown to the user
-        wp_die( __( 'AOW Certificate Generator activation failed: built assets missing. Please run `npm run build` and ensure the `assets/dist` directory is present before activating the plugin.', 'aow-cert' ) );
+// Previously we blocked activation if dist assets were missing. Prefer a softer approach:
+// show an admin notice advising the administrator to run the build if assets are missing.
+function aow_check_built_assets_notice() {
+    // Only show to users who can manage options (admins)
+    if ( ! current_user_can( 'manage_options' ) ) return;
+
+    $dist_file = plugin_dir_path(__FILE__) . 'assets/dist/aow-frontend-app.js';
+    if ( ! file_exists( $dist_file ) ) {
+        // Display a prominent admin notice
+        echo '<div class="notice notice-warning is-dismissible"><p><strong>AOW Certificate Generator:</strong> built frontend assets are missing. Please run <code>npm run build</code> in the plugin directory and rebuild assets so the plugin can serve optimized bundles (<code>assets/dist/</code>).</p></div>';
     }
 }
-register_activation_hook(__FILE__, 'aow_plugin_activate_check');
+add_action( 'admin_notices', 'aow_check_built_assets_notice' );
 
 /**
  * Activation and deactivation hooks to add/remove custom capability.
