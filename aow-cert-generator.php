@@ -8,9 +8,8 @@
  * License: GPL2
  *
  * Copyright (c) 2025 AppsOrWebs Limited
-</div>
 
-    <script>
+     <script>
     (function(){
         // Admin REST config for this page
         var AOW_REST = window.AOW_REST || {};
