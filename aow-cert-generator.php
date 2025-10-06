@@ -105,10 +105,19 @@ function appsorwebs_certificate_generator_output() {
     }
 </style>
 
+<!-- Preconnect to CDNs for faster loading -->
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
 <!-- Load external scripts required for the application -->
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Tailwind must load first but can be deferred slightly -->
+<script src="https://cdn.tailwindcss.com" defer></script>
+<!-- Fonts load asynchronously -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<!-- QRCode.js can load asynchronously since it's only needed for certificate display -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 
 <div id="app" class="flex flex-col items-center p-4 min-h-screen">
 
