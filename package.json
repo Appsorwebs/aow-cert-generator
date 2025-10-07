@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-  "build": "esbuild assets/js/*.js --bundle --minify --outdir=assets/dist --format=iife --sourcemap",
-  "dev": "esbuild assets/js/*.js --bundle --sourcemap --outdir=assets/dist --format=esm --watch"
+    "build": "esbuild assets/js/*.js --bundle --minify --outdir=assets/dist --format=iife --sourcemap",
+    "dev": "esbuild assets/js/*.js --bundle --sourcemap --outdir=assets/dist --format=iife --watch"
   },
   "devDependencies": {
     "esbuild": "^0.18.0"
