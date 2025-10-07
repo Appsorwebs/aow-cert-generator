@@ -7,3 +7,4 @@ assets/dist/*.map
 .vscode/
 aow-cert-generator-release.zip
 package-lock.json
+test-placeholder.html
